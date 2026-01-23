@@ -13,7 +13,7 @@ High-entropy diborides are highly customizable ceramics in which:
 This structural flexibility leads to a vast composition space, which is efficiently explored using automated SQS generation and thermodynamic fitting.
 
 <img width="435" height="102" alt="BLADE_Framework" src="https://github.com/user-attachments/assets/8a64271d-0427-4e2e-b964-df0af7ff18d0" />
-
+<img width="700" alt="BLADE_Framework" src="https://github.com/user-attachments/assets/8a64271d-0427-4e2e-b964-df0af7ff18d0" />
 **Figure 1.** Overview of the current BLADE framework and workflow.
 
 ---
