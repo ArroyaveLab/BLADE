@@ -93,7 +93,7 @@ print("Total # compositions: ", len(composition_list))
 print("Unique length compositions: ", unique_len_comps)
 
 
-tdb_generator = BladeTDBGen(
+BladeTDBGen(
     phases,
     liquid,
     paths,

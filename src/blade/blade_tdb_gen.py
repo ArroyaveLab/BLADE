@@ -87,6 +87,6 @@ class BladeTDBGen:
             sqsfit_func(comp, phase_list, self.level)
 
             # Change back to main folder
-            os.chdir(self.path1)
+            os.chdir(self.path0)
         
         return composition_list
