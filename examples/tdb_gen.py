@@ -17,12 +17,11 @@ path0 = Path("/Users/chasekatz/Desktop/School/Research")
 path1 = path0 / "PhaseForge/PhaseForge/atat/data/sqsdb/"
 path2 = path0 / "BLADE/BLADE/"
 level = 4
-time = 1
+time = 30
 
 # Specify elements and system size (Total # elements)
 transition_metals = ["Zr", "Hf", "Ta", "Cr", "Ti", "V", "Nb", "Mo", "W"]
 rare_earths = ["Sc", "Y", "La", "Pr", "Nd", "Sm", "Eu", "Gd", "Tb", "Dy", "Ho", "Er", "Tm", "Yb", "Lu"]
-transition_metals = ["Cr", "Hf"]
 system_size = 2
 tm_element_range = [2, 2]
 re_element_range = [0, 0]
@@ -101,8 +100,6 @@ tdb_generator = BladeTDBGen(
     composition_settings,
     sqs_gen_settings,
 )
-
-tdb_generator.generate_tdb()
 
 
 fraction = "0.75, 0.125, 0.125"

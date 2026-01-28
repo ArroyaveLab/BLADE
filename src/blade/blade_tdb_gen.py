@@ -30,8 +30,7 @@ class BladeTDBGen:
         self.sqsgen_levels = sqs_gen_settings[7]
         self.level = sqs_gen_settings[8]
         self.time = sqs_gen_settings[9]
-    
-    def generate_tdb(self):
+        
         compositions = BladeCompositions(
             self.transition_metals,
             self.rare_earths,
