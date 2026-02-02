@@ -1,7 +1,6 @@
-from cmath import phase
+import itertools
 import os
 from pathlib import Path
-import itertools
 
 import matplotlib.pyplot as plt
 from pycalphad import Database, binplot
@@ -19,12 +18,11 @@ path0 = Path("/Users/chasekatz/Desktop/School/Research")
 path1 = path0 / "PhaseForge/PhaseForge/atat/data/sqsdb/"
 path2 = path0 / "BLADE/BLADE/"
 level = 6
-time = 1
+time = 30
 
 # Specify elements and system size (Total # elements)
 transition_metals = ["Zr", "Hf", "Ta", "Cr", "Ti", "V", "Nb", "Mo", "W"]
 rare_earths = ["Sc", "Y", "La", "Pr", "Nd", "Sm", "Eu", "Gd", "Tb", "Dy", "Ho", "Er", "Tm", "Yb", "Lu"]
-transition_metals = ["Hf", "Cr"]
 system_size = 2
 tm_element_range = [2, 2]
 re_element_range = [0, 0]
@@ -58,8 +56,14 @@ sqsgen_levels = [
 ]
 
 paths = [path0, path1, path2]
-composition_settings = [transition_metals, rare_earths, system_size,
-                        tm_element_range, re_element_range, allow_lower_order]
+composition_settings = [
+    transition_metals,
+    rare_earths,
+    system_size,
+    tm_element_range,
+    re_element_range,
+    allow_lower_order,
+]
 
 
 compositions = BladeCompositions(
@@ -82,9 +86,9 @@ print("Total # compositions: ", len(composition_list))
 print("Unique length compositions: ", unique_len_comps)
 
 
-for phase in phases:
-    sqs_gen = BladeSQS(phases[phase], sqsgen_levels, level)
-    sqs_gen.sqs_gen(unique_len_comps, phase, path1, time)
+for specific_phase in phases:
+    sqs_gen = BladeSQS(phases[specific_phase], sqsgen_levels, level)
+    sqs_gen.sqs_gen(unique_len_comps, specific_phase, path1, time)
 
 BladeTDBGen(
     phases,
@@ -102,6 +106,7 @@ N_atoms, counts = sqs_gen.supercell_size(fractions)
 print(N_atoms, counts)
 
 PHASE_DIAGRAM_SYSTEM_SIZE = 3
+
 
 def plot(tdb, elements, phases, file, comp):
     if len(elements) >= PHASE_DIAGRAM_SYSTEM_SIZE:
@@ -126,6 +131,7 @@ def plot(tdb, elements, phases, file, comp):
     plt.tight_layout()
     plt.savefig(f"{file}_Phase_Diagram.png", dpi=300)
 
+
 for comp in composition_list:
     file = f"{path2}{''.join(comp)}"
     os.chdir(file)
@@ -142,12 +148,8 @@ for comp in composition_list:
     comp_dir = Path(f"{path2}{''.join(comp)}")
     pngs.extend(comp_dir.glob("*_Phase_Diagram.png"))
 if pngs:
-    viz.phase_diagram(
-        pngs,
-        save = Path(f"{path2}{''.join('Combined_Phase_Diagrams.png')}")
-    )
+    viz.phase_diagram(pngs, save=Path(f"{path2}{''.join('Combined_Phase_Diagrams.png')}"))
     print("Combined phase diagrams saved as Combined_Phase_Diagrams.png")
-
 
 
 for comp in composition_list:
@@ -159,8 +161,5 @@ for comp in composition_list:
         if not poscars:
             continue
         out = comp_dir / f"Combined_POSCARs_{''.join(comp)}_{phase_dir.name}.png"
-        viz.poscar(
-            poscars,
-            save=out
-        )
+        viz.poscar(poscars, save=out)
         print(f"Saved combined POSCARs → {out}")

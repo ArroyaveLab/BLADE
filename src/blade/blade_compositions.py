@@ -2,7 +2,17 @@ import itertools
 
 
 class BladeCompositions:
-    def __init__(self, transition_metals, rare_earths, system_size, tm_min, tm_max, re_min, re_max, allow_lower_order):
+    def __init__(
+        self,
+        transition_metals,
+        rare_earths,
+        system_size,
+        tm_min,
+        tm_max,
+        re_min,
+        re_max,
+        allow_lower_order,
+    ):
         self.transition_metals = transition_metals
         self.rare_earths = rare_earths
         self.system_size = system_size
@@ -33,7 +43,9 @@ class BladeCompositions:
                     if j == 0:
                         compositions += [[""]]
                     else:
-                        combined_comps += [list(c) for c in itertools.combinations(self.rare_earths, j)]
+                        combined_comps += [
+                            list(c) for c in itertools.combinations(self.rare_earths, j)
+                        ]
             if i != 0:
                 tm_combos += [list(c) for c in itertools.combinations(self.transition_metals, i)]
 

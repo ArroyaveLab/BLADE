@@ -1,13 +1,12 @@
 import matplotlib.pyplot as plt
-from ase.io import read
-from ase.visualize.plot import plot_atoms
-from PIL import Image
 import numpy as np
 from ase import Atoms
+from ase.visualize.plot import plot_atoms
+from PIL import Image
 
 
 def read_poscar_inline_symbols(poscar_path):
-    with open(poscar_path, "r") as f:
+    with open(poscar_path) as f:
         lines = [ln.strip() for ln in f if ln.strip()]
 
     scale = float(lines[1])
@@ -65,14 +64,12 @@ def read_poscar_inline_symbols(poscar_path):
 
     return Atoms(symbols=symbols, positions=positions, cell=cell, pbc=True)
 
+
 class BLADEVisualizer:
-    """
-    Minimal POSCAR visualizer.
-    """
+    """Minimal POSCAR visualizer."""
 
     def poscar(self, poscars, save=None):
-        """
-        Visualize a POSCAR/CONTCAR.
+        """Visualize a POSCAR/CONTCAR.
 
         Parameters
         ----------
@@ -98,28 +95,26 @@ class BLADEVisualizer:
             plt.show()
 
     def phase_diagram(self, images, save):
-            """
-            Combine PNG images side-by-side and save.
+        """Combine PNG images side-by-side and save.
 
-            Parameters
-            ----------
-            images : list[str | Path]
-                Paths to image files
-            save : str | Path
-                Output image path
-            """
-            imgs = [Image.open(p) for p in images]
+        Parameters
+        ----------
+        images : list[str | Path]
+            Paths to image files
+        save : str | Path
+            Output image path
+        """
+        imgs = [Image.open(p) for p in images]
 
-            widths, heights = zip(*(img.size for img in imgs))
-            total_width = sum(widths)
-            max_height = max(heights)
+        widths, heights = zip(*(img.size for img in imgs))
+        total_width = sum(widths)
+        max_height = max(heights)
 
-            combined = Image.new("RGB", (total_width, max_height), "white")
+        combined = Image.new("RGB", (total_width, max_height), "white")
 
-            x_offset = 0
-            for img in imgs:
-                combined.paste(img, (x_offset, 0))
-                x_offset += img.width
+        x_offset = 0
+        for img in imgs:
+            combined.paste(img, (x_offset, 0))
+            x_offset += img.width
 
-            combined.save(save)
-
+        combined.save(save)

@@ -74,7 +74,7 @@ class BladeSQS:
         for i in range(self.level + 1):
             sqsgen += self.sqsgen_levels[i] + "\n"
 
-        #unit_cell_multiplied = repeat_unit_cell(self.unit_cell, nx=2, ny=2, nz=2)
+        # unit_cell_multiplied = repeat_unit_cell(self.unit_cell, nx=2, ny=2, nz=2)
         rndstr = rndstr1.strip() + "\n" + self.unit_cell.strip()
         print(rndstr)
         self.sqsgen_text = sqsgen
@@ -170,7 +170,16 @@ class BladeSQS:
                 print(f"Running corrdump in {fractions}")
                 try:
                     subprocess.run(
-                        ["corrdump", "-l=rndstr.in", "-ro", "-noe", "-nop", "-clus", "-2=1,2,3", "-3=1"],
+                        [
+                            "corrdump",
+                            "-l=rndstr.in",
+                            "-ro",
+                            "-noe",
+                            "-nop",
+                            "-clus",
+                            "-2=1,2,3",
+                            "-3=1",
+                        ],
                         cwd=sqsdir,
                         check=True,
                     )

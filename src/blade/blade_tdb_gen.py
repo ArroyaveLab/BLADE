@@ -1,9 +1,9 @@
 import os
 from pathlib import Path
+
 from materialsframework.calculators import GraceCalculator as Calculator
 from materialsframework.tools.sqs2tdb import Sqs2tdb
-from blade.blade_compositions import BladeCompositions
-from blade.blade_sqs import BladeSQS
+
 
 class BladeTDBGen:
     def __init__(self, phases, liquid, paths, composition_list, level):
