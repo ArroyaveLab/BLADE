@@ -1,3 +1,4 @@
+from cmath import phase
 import os
 from pathlib import Path
 import itertools
@@ -18,38 +19,33 @@ path0 = Path("/Users/chasekatz/Desktop/School/Research")
 path1 = path0 / "PhaseForge/PhaseForge/atat/data/sqsdb/"
 path2 = path0 / "BLADE/BLADE/"
 level = 6
-time = 30
+time = 1
 
 # Specify elements and system size (Total # elements)
 transition_metals = ["Zr", "Hf", "Ta", "Cr", "Ti", "V", "Nb", "Mo", "W"]
 rare_earths = ["Sc", "Y", "La", "Pr", "Nd", "Sm", "Eu", "Gd", "Tb", "Dy", "Ho", "Er", "Tm", "Yb", "Lu"]
+transition_metals = ["Hf", "Cr"]
 system_size = 2
 tm_element_range = [2, 2]
 re_element_range = [0, 0]
 allow_lower_order = True
 
-a = 1
-b = 1
-c = 1.63299
-alpha = 90
-beta = 90
-gamma = 120
 
-rndstr = """
-0.166667 0.833333 0.5       B
-0.833333 0.166667 0.5       B
-0.250000 0.250000 0.5       B
-0.750000 0.750000 0.5       B
-0.600000 0.300000 0.5       B
-0.300000 0.600000 0.5       B
-0.000000 0.000000 1.000000  a
-0.333333 0.666667 1.000000  a
-0.666667 0.333333 1.000000  a
-0.500000 0.000000 1.000000  a
-0.000000 0.500000 1.000000  a
-0.500000 0.500000 1.000000  a
-0.250000 0.750000 1.000000  a
-"""
+phases = {}
+
+phases["HEDB1"] = {
+    "a": 1,
+    "b": 1,
+    "c": 1.63299,
+    "alpha": 90,
+    "beta": 90,
+    "gamma": 120,
+    "coords": """
+0.000000 0.000000 0.000000  a
+0.333333 0.666667 0.500000  B
+0.666667 0.333333 0.500000  B
+""",
+}
 
 sqsgen_levels = [
     """level=0         a=1""",
@@ -87,7 +83,7 @@ print("Unique length compositions: ", unique_len_comps)
 
 
 for phase in phases:
-    sqs_gen = BladeSQS(a, b, c, alpha, beta, gamma, rndstr, sqsgen_levels, level)
+    sqs_gen = BladeSQS(phases[phase], sqsgen_levels, level)
     sqs_gen.sqs_gen(unique_len_comps, phase, path1, time)
 
 BladeTDBGen(
@@ -98,9 +94,10 @@ BladeTDBGen(
     level,
 )
 
+# Example usage of supercell_size
 fraction = "0.75, 0.125, 0.125"
 fractions = [float(x) for x in fraction.split(",")]
-sqs_gen = BladeSQS(a, b, c, alpha, beta, gamma, rndstr, sqsgen_levels, level)
+sqs_gen = BladeSQS(phases["HEDB1"], sqsgen_levels, level)
 N_atoms, counts = sqs_gen.supercell_size(fractions)
 print(N_atoms, counts)
 
@@ -161,7 +158,7 @@ for comp in composition_list:
         poscars = sorted(phase_dir.glob("sqs_lev=*/POSCAR"))
         if not poscars:
             continue
-        out = comp_dir / "Combined_POSCARs.png"
+        out = comp_dir / f"Combined_POSCARs_{''.join(comp)}_{phase_dir.name}.png"
         viz.poscar(
             poscars,
             save=out

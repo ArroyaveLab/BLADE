@@ -5,11 +5,12 @@ from fractions import Fraction
 from pathlib import Path
 
 
-def supercell_size(self, fractions):
-    fracs = [Fraction(float(f)).limit_denominator(96) for f in fractions]
+def supercell_size(self, fractions, min_a_sites=16, max_den=96):
+    # safer rationalization
+    fracs = [Fraction(float(f)).limit_denominator(max_den) for f in fractions]
     denom_lcm = math.lcm(*[f.denominator for f in fracs])
 
-    # Count only actual atomic site lines: "x y z label"
+    # Count sites in prototype
     a_sites = 0
     b_sites = 0
     sites = 0
@@ -17,71 +18,76 @@ def supercell_size(self, fractions):
         parts = line.split()
         if len(parts) != 4:
             continue
-        label = parts[-1]
         sites += 1
-        if label == "a":
+        if parts[-1] == "a":
             a_sites += 1
         else:
             b_sites += 1
 
-    base_sites = a_sites
-    count_b = b_sites
+    if a_sites == 0:
+        raise ValueError("No 'a' sites found in unit_cell")
 
-    # Choose a number of 'a' sites that can represent the fractions exactly
-    n_a = math.lcm(base_sites, denom_lcm)
+    # Smallest n_a that can represent fractions exactly
+    n_a0 = math.lcm(a_sites, denom_lcm)
 
+    # Enforce a minimum number of metal sites (quality)
+    if n_a0 < min_a_sites:
+        mult = math.ceil(min_a_sites / n_a0)
+        n_a = n_a0 * mult
+    else:
+        n_a = n_a0
+
+    # Number of prototype repeats
     k = n_a // a_sites
-    n_total = n_a + count_b * k
 
-    min_total = 2 * sites
-    if n_total < min_total: 
-        n_total = min_total
+    # Total sites follow prototype ratio exactly
+    n_total = k * (a_sites + b_sites)
 
-    n_total = ((n_total + (sites - 1)) // sites) * sites
-
-    n_a = n_total - count_b * k
-
+    # Integer counts per species on a-sublattice
     counts = [int(n_a * f) for f in fracs]
     diff = n_a - sum(counts)
     counts[0] += diff
 
     return n_total, counts
 
+
 class BladeSQS:
-    def __init__(self, a, b, c, alpha, beta, gamma, unit_cell, sqsgen_levels, level):
-        self.a = a
-        self.b = b
-        self.c = c
-        self.alpha = alpha
-        self.beta = beta
-        self.gamma = gamma
-        self.unit_cell = unit_cell
+    def __init__(self, phases_dict, sqsgen_levels, level):
+        self.a = phases_dict["a"]
+        self.b = phases_dict["b"]
+        self.c = phases_dict["c"]
+        self.alpha = phases_dict["alpha"]
+        self.beta = phases_dict["beta"]
+        self.gamma = phases_dict["gamma"]
+        self.unit_cell = phases_dict["coords"]
         self.sqsgen_levels = sqsgen_levels
         self.level = level
 
     def sqs_struct(self):
         rndstr1 = f"""
         {self.a} {self.b} {self.c} {self.alpha} {self.beta} {self.gamma}
-        {self.a} 0 0
-        {self.a / 2} {self.a * math.sqrt(3) / 2} 0
-        0 0 {self.c}
+        1 0 0
+        0 1 0
+        0 0 1
         """
-
         sqsgen = ""
         for i in range(self.level + 1):
             sqsgen += self.sqsgen_levels[i] + "\n"
 
+        #unit_cell_multiplied = repeat_unit_cell(self.unit_cell, nx=2, ny=2, nz=2)
         rndstr = rndstr1.strip() + "\n" + self.unit_cell.strip()
+        print(rndstr)
         self.sqsgen_text = sqsgen
         self.rndstr = rndstr
 
         return sqsgen, rndstr
 
-    def supercell_size(self, fractions):
-        fracs = [Fraction(float(f)).limit_denominator(96) for f in fractions]
+    def supercell_size(self, fractions, min_a_sites=16, max_den=96):
+        # safer rationalization
+        fracs = [Fraction(float(f)).limit_denominator(max_den) for f in fractions]
         denom_lcm = math.lcm(*[f.denominator for f in fracs])
 
-        # Count only actual atomic site lines: "x y z label"
+        # Count sites in prototype
         a_sites = 0
         b_sites = 0
         sites = 0
@@ -89,30 +95,32 @@ class BladeSQS:
             parts = line.split()
             if len(parts) != 4:
                 continue
-            label = parts[-1]
             sites += 1
-            if label == "a":
+            if parts[-1] == "a":
                 a_sites += 1
             else:
                 b_sites += 1
 
-        base_sites = a_sites
-        count_b = b_sites
+        if a_sites == 0:
+            raise ValueError("No 'a' sites found in unit_cell")
 
-        # Choose a number of 'a' sites that can represent the fractions exactly
-        n_a = math.lcm(base_sites, denom_lcm)
+        # Smallest n_a that can represent fractions exactly
+        n_a0 = math.lcm(a_sites, denom_lcm)
 
+        # Enforce a minimum number of metal sites (quality)
+        if n_a0 < min_a_sites:
+            mult = math.ceil(min_a_sites / n_a0)
+            n_a = n_a0 * mult
+        else:
+            n_a = n_a0
+
+        # Number of prototype repeats
         k = n_a // a_sites
-        n_total = n_a + count_b * k
 
-        min_total = 2 * sites
-        if n_total < min_total: 
-            n_total = min_total
+        # Total sites follow prototype ratio exactly
+        n_total = k * (a_sites + b_sites)
 
-        n_total = ((n_total + (sites - 1)) // sites) * sites
-
-        n_a = n_total - count_b * k
-
+        # Integer counts per species on a-sublattice
         counts = [int(n_a * f) for f in fracs]
         diff = n_a - sum(counts)
         counts[0] += diff
