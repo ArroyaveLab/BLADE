@@ -11,6 +11,7 @@ from blade.blade_sqs import BladeSQS
 from blade.blade_tdb_gen import BladeTDBGen
 from blade.blade_visual import BLADEVisualizer
 
+# Define phases, pathways, and SQS generation settings
 phases = ["HEDB1"]
 liquid = True
 liquid = False
@@ -18,17 +19,18 @@ path0 = Path("/Users/chasekatz/Desktop/School/Research")
 path1 = path0 / "PhaseForge/PhaseForge/atat/data/sqsdb/"
 path2 = path0 / "BLADE/BLADE/"
 level = 6
-time = 30
+time = 1
 
-# Specify elements and system size (Total # elements)
+# Define elements and composition settings
 transition_metals = ["Zr", "Hf", "Ta", "Cr", "Ti", "V", "Nb", "Mo", "W"]
 rare_earths = ["Sc", "Y", "La", "Pr", "Nd", "Sm", "Eu", "Gd", "Tb", "Dy", "Ho", "Er", "Tm", "Yb", "Lu"]
+transition_metals = ["Hf", "Mo", "Cr"]
 system_size = 2
 tm_element_range = [2, 2]
 re_element_range = [0, 0]
 allow_lower_order = True
 
-
+# Define phases
 phases = {}
 
 phases["HEDB1"] = {
@@ -45,6 +47,7 @@ phases["HEDB1"] = {
 """,
 }
 
+# Specify SQS composition levels
 sqsgen_levels = [
     """level=0         a=1""",
     """level=1         a=0.5,0.5""",
@@ -65,7 +68,7 @@ composition_settings = [
     allow_lower_order,
 ]
 
-
+# Generate compositions
 compositions = BladeCompositions(
     transition_metals,
     rare_earths,
@@ -85,7 +88,7 @@ print("Compositions: ", composition_list)
 print("Total # compositions: ", len(composition_list))
 print("Unique length compositions: ", unique_len_comps)
 
-
+# Generate SQS structures for every composition system in each phase
 for specific_phase in phases:
     sqs_gen = BladeSQS(phases[specific_phase], sqsgen_levels, level)
     sqs_gen.sqs_gen(unique_len_comps, specific_phase, path1, time)
@@ -98,16 +101,10 @@ BladeTDBGen(
     level,
 )
 
-# Example usage of supercell_size
-fraction = "0.75, 0.125, 0.125"
-fractions = [float(x) for x in fraction.split(",")]
-sqs_gen = BladeSQS(phases["HEDB1"], sqsgen_levels, level)
-N_atoms, counts = sqs_gen.supercell_size(fractions)
-print(N_atoms, counts)
-
 PHASE_DIAGRAM_SYSTEM_SIZE = 3
 
 
+# Phase diagram plotting function
 def plot(tdb, elements, phases, file, comp):
     if len(elements) >= PHASE_DIAGRAM_SYSTEM_SIZE:
         return
@@ -120,7 +117,6 @@ def plot(tdb, elements, phases, file, comp):
     if liquid:
         phase_list.append("LIQUID")
 
-    # Compute the phase diagram and plot it
     binplot(
         tdb,
         elements,
@@ -132,6 +128,7 @@ def plot(tdb, elements, phases, file, comp):
     plt.savefig(f"{file}_Phase_Diagram.png", dpi=300)
 
 
+# Optimize SQS structures, generate TDB files, and plot phase diagrams for every composition
 for comp in composition_list:
     file = f"{path2}{''.join(comp)}"
     os.chdir(file)
@@ -142,6 +139,7 @@ for comp in composition_list:
             tdb = Database(f"{files}.tdb")
             plot(tdb, elements, phases, files, comp)
 
+# Combine generated phase diagrams into one image
 viz = BLADEVisualizer()
 pngs = []
 for comp in composition_list:
@@ -152,6 +150,7 @@ if pngs:
     print("Combined phase diagrams saved as Combined_Phase_Diagrams.png")
 
 
+# Combine generated POSCAR files into one image for each phase in every composition
 for comp in composition_list:
     comp_dir = Path(f"{path2}{''.join(comp)}")
     if not comp_dir.exists():
