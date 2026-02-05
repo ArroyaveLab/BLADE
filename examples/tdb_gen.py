@@ -13,13 +13,12 @@ from blade.blade_visual import BLADEVisualizer
 
 # Define phases, pathways, and SQS generation settings
 phases = ["HEDB1"]
-liquid = True
 liquid = False
 path0 = Path("/Users/chasekatz/Desktop/School/Research")
 path1 = path0 / "PhaseForge/PhaseForge/atat/data/sqsdb/"
 path2 = path0 / "BLADE/BLADE/"
 level = 6
-sqs_iter = 300000
+sqs_iter = 1000000
 
 # Define elements and composition settings
 transition_metals = ["Zr", "Hf", "Ta", "Cr", "Ti", "V", "Nb", "Mo", "W"]

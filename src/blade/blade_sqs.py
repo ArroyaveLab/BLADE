@@ -70,7 +70,7 @@ class BladeSQS:
 
         return sqsgen, rndstr
 
-    def supercell_size(self, fractions, min_a_sites=16, max_den=96):
+    def supercell_size(self, fractions, min_a_sites=1, max_den=96):
         """
         Determine a supercell size compatible with target fractions.
 
@@ -146,7 +146,7 @@ class BladeSQS:
             unique_len_comps (iterable[int]): Set or list of system sizes (e.g., {2, 3}).
             phase (str): Phase name used to construct output folder names.
             path1 (str | Path): Root directory where phase folders are created.
-            time (float): Seconds to wait before touching `stopsqs` to stop mcsqs.
+            iter (float): Iterations to wait before stopping mcsqs.
         """
         for length in unique_len_comps:
             dir_name = Path(path1) / (phase + "_" + str(length))
@@ -192,8 +192,8 @@ class BladeSQS:
                             "-noe",
                             "-nop",
                             "-clus",
-                            "-2=1,2,3",
-                            "-3=1",
+                            "-2=1,2,3,4",
+                            "-3=1,2",
                         ],
                         cwd=sqsdir,
                         check=True,
@@ -201,7 +201,7 @@ class BladeSQS:
 
                     print(f"Running mcsqs with {n_atoms} atoms in {fractions}")
                     subprocess.run(
-                        ["mcsqs", f"-n={n_atoms}", f"-ms={iter}"],
+                        ["mcsqs", f"-n={n_atoms}", f"-ms={iter}", "-tol=1e-3"],
                         cwd=sqsdir,
                         check=True,
                     )
