@@ -1,163 +1,232 @@
-# BLADE: Boride Learning and Design Engine
+<div align="center">
 
-High-Entropy Diboride Oxidation Screening Framework
+# BLADE
+
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://opensource.org/license/gpl-3-0)
+[![Python](https://img.shields.io/badge/python-3.10%2B-brightgreen.svg)](https://www.python.org/)
+[![Version](https://img.shields.io/badge/version-0.2.0-orange.svg)](pyproject.toml)
+
+**Boride Learning and Design Engine — automated CALPHAD thermodynamic database generation for multicomponent materials systems.**
+
+[Report a Bug](https://github.com/ichasekatz/BLADE/issues/new?labels=bug) · [Request a Feature](https://github.com/ichasekatz/BLADE/issues/new?labels=enhancement)
+
+</div>
+
+---
+
+<div align="center">
+<img width="700" alt="BLADE_Framework" src="https://github.com/user-attachments/assets/8a64271d-0427-4e2e-b964-df0af7ff18d0" />
+</div>
+
+---
 
 ## Overview
 
-This framework is designed to predict and screen **oxidation-relevant properties of high-entropy diborides (HEDBs)** using a combination of **special quasirandom structures (SQS)**, **first-principles energetics**, and **CALPHAD-style fitting**. [1-5]
+BLADE automates the full CALPHAD workflow from start to finish: given an element pool and a crystal structure prototype, it enumerates every valid N-component system, generates SQS supercells, relaxes them with an ML interatomic potential, fits CALPHAD parameters, and produces `.tdb` files — without manual intervention at any step.
 
-High-entropy diborides are highly customizable ceramics in which:
+Inspired by [MaterialsFramework](https://github.com/dogusariturk/MaterialsFramework)'s modular design, BLADE builds on top of it as a computational backend. **BLADE requires the [ichasekatz fork of MaterialsFramework](https://github.com/ichasekatz/MaterialsFramework)** — install it before installing BLADE.
 
-* **Boron is held fixed** on the middle sublattice
-* **Metal species are substituted** on the top and bottom sublattices
-* The parent AlB₂-type prototype contains **14 total atoms per unit cell**
-
-This structural flexibility leads to a vast composition space, which is efficiently explored using automated SQS generation and thermodynamic fitting.
-
-<img width="700" alt="BLADE_Framework" src="https://github.com/user-attachments/assets/8a64271d-0427-4e2e-b964-df0af7ff18d0" />
-
-**Figure 1.** Overview of the current BLADE framework and workflow.
+- **Composition generation** — enumerate binary, ternary, or N-component systems from primary and secondary element pools with configurable count bounds
+- **SQS generation** — drive ATAT `mcsqs` in parallel across all compositions and supercell sizes
+- **TDB fitting** — relax structures with any MLIP supported by MaterialsFramework, compute formation energies and thermal properties, fit CALPHAD parameters, write `.tdb` files
+- **Visualization** — combine CONTCAR structure images, stitch phase-diagram PNGs, render relaxation movies
+- **Volume analysis** — scan POSCAR files and extract lattice parameters and per-atom volumes into a DataFrame
 
 ---
 
-## Code Structure and Workflow
+## What BLADE Does Differently
 
-### `BLADE.py`
+Existing tools handle pieces of this workflow in isolation — a calculator relaxes one structure, a fitting tool processes one system, a visualization tool reads one file. BLADE connects all of these into a single automated pipeline driven by a composition list.
 
-`BLADE.py` serves as the **main driver** for the framework.
-It coordinates composition generation, SQS construction, thermodynamic fitting, and visualization by calling the supporting modules described below.
+| Capability | BLADE |
+|---|---|
+| Structure relaxation | Batched across every composition and SQS level, instead of a single structure at a time |
+| Property calculation | Automated per-SQS-level pipeline, instead of per-structure manual invocation |
+| Composition enumeration | `BladeCompositions` traverses the full N-component search space automatically |
+| SQS generation | `BladeSQS` runs parallel `mcsqs` across all compositions simultaneously |
+| CALPHAD database output | `BladeTDBGen` processes all systems and phases in one call, instead of one system per run |
+| Fixed sublattice sites | `sqsgen_levels2` holds any species fixed on any sublattice, enabling ceramics and intermetallics |
+| Phase diagrams | Built-in pseudo-binary plots via `pycalphad`, instead of a separate workflow |
+| Visualization | `BladeVisualizer` combines structures, diagrams, and relaxation movies in one place |
 
----
-
-### `blade_compositions.py`
-
-This module generates **composition permutations** for a given system by specifying:
-
-* Allowed transition-metal elements
-* Optional rare-earth elements
-* Target system size (number of metal species)
-* Minimum/maximum number of transition metals and rare earths
-
-The output is a list of unique metal-sublattice compositions consistent with the specified constraints.
+The fixed-sublattice support is particularly significant: BLADE is not limited to simple alloys. Any crystal structure where some sites have fixed occupancy (e.g., boron in diborides, oxygen in oxides) can be described through a lattice coordinate string and a phase prototype dictionary, making BLADE applicable across a wide range of ceramic and intermetallic systems.
 
 ---
 
-### Lattice and SQS Specification
+## Modules
 
-Users define:
+### Tools
 
-* Lattice parameters for the AlB₂-type parent structure
-* SQS composition levels (e.g., endmembers, midpoints, off-stoichiometric points)
+| Class | Description |
+|---|---|
+| `BladeCompositions` | Enumerate compositions from primary and secondary element pools |
+| `BladeSQS` | Generate special quasirandom structures using ATAT `mcsqs` |
+| `BladeTDBGen` | Relax structures and fit CALPHAD thermodynamic databases |
+| `BladeCutoff` | Compute radial cutoff distances from SQS supercell geometry |
 
-These inputs control which compositions are explicitly sampled and how well random alloy statistics are approximated.
+### Analysis
 
-<img width="700" alt="HEDB_Lattice" src="https://github.com/user-attachments/assets/b3b0bf3b-051a-4d18-82a5-fe79b9f9441e" />
+| Class | Description |
+|---|---|
+| `BladeVisualizer` | Combine structure images, phase diagrams, and relaxation movies |
+| `BLADEVolume` | Extract volumes and lattice parameters from POSCAR files |
 
-**Figure 2.** Schematic of the HEDB lattice. Boron is held fixed on the central sublattice, and metal atoms are substituted on the outer sublattices. Reproduced from Gild et al. (2016) under the Creative Commons Attribution (CC BY) license. [1]
+All classes are available via lazy top-level import — heavy dependencies are not loaded until first use:
 
----
-
-### `blade_sqs.py`
-
-This module generates **SQS supercells** for each composition using ATAT-style SQS construction.
-
-Key features include:
-
-* Automatic calculation of the **minimum supercell size** required for a given composition and SQS level
-* Generation of SQS structures consistent with the specified lattice and sublattice disorder
-* The `supercell_size` function reports the number of atoms (or unit cells) required for each SQS
-
-Each generated SQS is intended to be relaxed using first-principles calculations prior to fitting.
+```python
+from blade import BladeCompositions, BladeSQS, BladeTDBGen
+from blade import BladeVisualizer, BLADEVolume
+```
 
 ---
 
-### Thermodynamic Fitting and Phase Diagrams
+## Getting Started
 
-After SQS structures are generated and relaxed:
+### Prerequisites
 
-* Each composition is fit using **sqs2tdb**, producing a **CALPHAD-style `.tdb` file**
-* For binary metal systems, a **phase diagram** is generated to visualize:
+- [ichasekatz/MaterialsFramework](https://github.com/ichasekatz/MaterialsFramework) — required fork, install before BLADE
+- [ATAT](https://www.brown.edu/Departments/Engineering/Labs/avdw/atat/) (`mcsqs` must be on `$PATH`)
 
-  * Single-phase regions
-  * Miscibility gaps
-  * Composition–temperature stability trends
+### Installation
 
-These phase diagrams are used to identify metal combinations that are likely to form stable or metastable HEDB solid solutions.
+Install dependencies with [pixi](https://pixi.sh) and pip:
 
-<img width="700" alt="CR_NB_Phase_Diagram" src="https://github.com/user-attachments/assets/9f68e914-e764-49af-91bd-a04f1a9e71c0" />
+```bash
+pixi add git python==3.12 cmake pip psutil pandarallel orb-models pytorch tcsh pymatgen sqsgenerator
+pip install matplotlib pillow imageio pycalphad torch ase pynanoflann
+pip install tensorflow
+pip install tensorpotential
+```
 
-**Figure 3.** Example phase diagram generated with the BLADE framework showing a miscibility gap in the Cr–Nb–B₂ system.
+Install the required MaterialsFramework fork:
 
----
+```bash
+git clone https://github.com/ichasekatz/MaterialsFramework.git
+cd MaterialsFramework
+pip install -e .
+cd ..
+```
 
-## Outputs
+Install BLADE:
 
-* Relaxed SQS structures (POSCAR format)
-* CALPHAD-compatible `.tdb` files
-* Binary phase diagrams (where applicable)
-* Composition-level miscibility and stability screening data
-
----
-
-## Intended Use
-
-This framework is intended for **high-throughput screening**, not direct prediction of full oxidation kinetics.
-It is particularly useful for:
-
-* Identifying metal combinations with favorable mixing behavior
-* Ranking candidate HEDBs prior to more expensive oxidation modeling
-* Guiding experimental alloy selection
-
-<img width="700" alt="Multiverse" src="https://github.com/user-attachments/assets/f8de55aa-16ba-427d-baf9-22373655f391" />
-
-**Figure 4.** Overview of the BLADE framework and its integration with external tools and supporting frameworks (the Multi-verse).
+```bash
+git clone https://github.com/ichasekatz/BLADE.git
+cd BLADE
+pip install -e .
+```
 
 ---
 
-## Future Work
+## Quick Start
 
-Planned extensions of the framework include:
+### 1. Generate compositions
 
-1. **Explicit oxide modeling**
+```python
+from blade.tools.blade_compositions import BladeCompositions
 
-   * Oxide structures will be introduced in place of HEDB lattices
-   * Oxide thermodynamics will be evaluated alongside diboride phases
+composer = BladeCompositions(
+    primary_elements=["Hf", "Cr", "Ta", "Ti", "Mo"],
+    secondary_elements=[],
+    system_size=3,
+    primary_min=3, primary_max=3,
+    secondary_min=0, secondary_max=0,
+    allow_lower_order=False,
+)
 
-2. **Volume and lattice-parameter matching**
+composition_list = composer.generate_compositions()
+print(f"{len(composition_list)} ternary systems: {composition_list[:5]}")
+```
 
-   * Optimized POSCAR files will be used to compute unit-cell volumes
-   * Oxide and diboride lattice parameters will be compared to assess:
+### 2. Generate SQS structures
 
-     * Volume change upon oxidation
-     * Lattice mismatch and strain accommodation
+```python
+from blade.tools.blade_sqsgen import BladeSQS
 
-3. **Oxide adhesion and stability metrics**
+sqs_gen = BladeSQS(
+    phases_dict=phases["HEDB1"],
+    sqsgen_levels=sqsgen_levels,
+    level=5,
+    len_comp=2,
+    skip_existing_sqs=True,
+)
+sqs_gen.sqs_gen(phase=phase, paths=paths, iter=1_000_000, params=mcsqs_params)
+```
 
-   * Favorable volume and lattice matching will be used as proxies for oxide adhesion
-   * Compositions producing mechanically stable oxide scales will be prioritized
+### 3. Fit thermodynamic databases
 
-4. **Oxygen diffusivity and oxide-scale growth**
+```python
+from blade.tools.blade_tdb_gen import BladeTDBGen
 
-   * Oxygen transport will be evaluated to estimate oxide-scale thickness and growth behavior
-   * This will enable ranking of compositions by predicted oxidation resistance
+gen = BladeTDBGen(
+    phases=phase_list,
+    liquid=False,
+    paths=paths,
+    composition_list=composition_list,
+    level=5,
+    sqsgen_levels2=sqsgen_levels2,
+    skip_existing=False,
+)
+gen.fit()  # explicit call — no side effects on construction
+```
+
+### 4. Visualize results
+
+```python
+from blade.analysis.blade_visual import BladeVisualizer
+
+viz = BladeVisualizer()
+viz.contcar(contcars, save="CrHf/Combined_CONTCARs.png")
+viz.phase_diagram(pngs, save="Combined_Phase_Diagrams.png")
+```
 
 ---
 
-## Notes
+## Example Scripts
 
-* Boron is treated as a **fixed sublattice** in the current implementation and is implicit in the thermodynamic fitting.
-* The generated `.tdb` files describe **metal-sublattice mixing behavior** within the HEDB prototype and do not represent a full multi-phase thermodynamic database.
+| Script | Description |
+|---|---|
+| [`01_compositions.py`](examples/01_compositions.py) | Enumerate binary/ternary/N-component compositions |
+| [`02_sqs_generation.py`](examples/02_sqs_generation.py) | Generate SQS structures with ATAT `mcsqs` |
+| [`03_tdb_generation.py`](examples/03_tdb_generation.py) | Relax structures and fit TDB databases |
+| [`04_visualization.py`](examples/04_visualization.py) | Combine structures, phase diagrams, and movies |
+| [`05_volume_analysis.py`](examples/05_volume_analysis.py) | Extract per-atom volumes from POSCAR files |
+| [`tdb_gen.py`](examples/tdb_gen.py) | Full end-to-end workflow (HPC driver script) |
 
 ---
 
-## Citations
+## Project Structure
 
-[1] J. Gild et al., “High-entropy metal diborides: A new class of ultrahigh-temperature ceramics,” Scientific Reports, 6, 37946 (2016).
+```
+BLADE/
+├── src/
+│   └── blade/
+│       ├── __init__.py              # lazy loader — all public classes
+│       ├── tools/
+│       │   ├── __init__.py
+│       │   ├── blade_compositions.py
+│       │   ├── blade_cutoff.py
+│       │   ├── blade_sqsgen.py
+│       │   └── blade_tdb_gen.py
+│       └── analysis/
+│           ├── __init__.py
+│           ├── blade_visual.py
+│           └── blade_volume.py
+├── examples/
+│   ├── 01_compositions.py
+│   ├── 02_sqs_generation.py
+│   ├── 03_tdb_generation.py
+│   ├── 04_visualization.py
+│   ├── 05_volume_analysis.py
+│   └── tdb_gen.py
+└── pyproject.toml
+```
 
-[2] S. Zhu et al., “Machine learning potentials for alloys: A workflow to predict phase diagrams and benchmark accuracy,” arXiv preprint (2025).
+---
 
-[3] H. Tang et al., “Rare-earth compositional screening of high-entropy diborides for improved oxidation resistance,” Journal of the American Ceramic Society, 108, e20123 (2025).
+## License
 
-[4] C. Kunselman et al., “Analytical gradient-based optimization of CALPHAD model parameters,” arXiv preprint (2025).
+Distributed under the GPL-3.0-or-later License.
 
-[5] C. Kunselman et al., “Construction and tuning of CALPHAD models using machine-learned interatomic potentials: Pt–W system,” arXiv preprint (2025).
+## Contact
+
+Chase Katz — [ichasekatz@tamu.edu](mailto:ichasekatz@tamu.edu)
